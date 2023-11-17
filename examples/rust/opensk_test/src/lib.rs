@@ -41,11 +41,11 @@ fn main() {
 
 // --- RNG
 
-struct WasefireRng {}
+struct WasefireRng;
 
 impl Default for WasefireRng {
     fn default() -> Self {
-        WasefireRng {}
+        Self {}
     }
 }
 
@@ -76,11 +76,11 @@ impl Rng for WasefireRng {}
 
 // --- CUSTOMIZATION
 
-pub const AAGUID: &[u8; AAGUID_LENGTH] = todo!();
+// pub const AAGUID: &[u8; AAGUID_LENGTH] = todo!();
 // include_bytes!(concat!(env!("OUT_DIR"), "/opensk_aaguid.bin"));
 
-const WASEFIRE_CUSTOMIZATION: CustomizationImpl =
-    CustomizationImpl { aaguid: AAGUID, ..DEFAULT_CUSTOMIZATION };
+// const WASEFIRE_CUSTOMIZATION: CustomizationImpl =
+//     CustomizationImpl { aaguid: AAGUID, ..DEFAULT_CUSTOMIZATION };
 
 // --- WRITE
 
@@ -88,8 +88,7 @@ pub struct WasefireWrite;
 
 impl Default for WasefireWrite {
     fn default() -> Self {
-        todo!()
-        // Self {}
+        Self {}
     }
 }
 
@@ -105,8 +104,7 @@ pub struct WasefireStore;
 
 impl Default for WasefireStore {
     fn default() -> Self {
-        todo!()
-        // Self {}
+        Self {}
     }
 }
 
@@ -154,33 +152,33 @@ impl Storage for WasefireStorage {
 
 impl Default for WasefireStorage {
     fn default() -> Self {
-        todo!()
-        // Self {}
+        Self {}
     }
 }
 
 // --- CLOCK
 
-pub struct WasefireClock<H: Handler> {
-    timer: Timer<H>,
+pub struct WasefireClock {
+    // pub struct WasefireClock<H: Handler> {
+    // timer: Timer<H>,
 }
 
-impl<H: Handler> Default for WasefireClock<H> {
+impl Default for WasefireClock {
     fn default() -> Self {
         // TODO: Replace with actual impl
-        todo!()
+        // todo!()
         // let timer: Timer<H>
         // let timer = Timer {
         //   // 0,
         //   // Cell::new(false),
         //   // H
         // };
-        // Self { timer }
+        Self {}
     }
 }
 
-impl<H: Handler> Clock for WasefireClock<H> {
-    type Timer = Timer<H>;
+impl Clock for WasefireClock {
+    type Timer = Self;
 
     fn make_timer(&mut self, milliseconds: usize) -> Self::Timer {
         todo!()
@@ -197,8 +195,7 @@ pub struct WasefireUserPresence;
 
 impl Default for WasefireUserPresence {
     fn default() -> Self {
-        todo!()
-        // Self {}
+        Self {}
     }
 }
 
@@ -269,8 +266,7 @@ impl KeyStore for WasefireKeyStore {
 
 impl Default for WasefireKeyStore {
     fn default() -> Self {
-        todo!()
-        // Self {}
+        Self {}
     }
 }
 
@@ -289,12 +285,11 @@ impl HidConnection for WasefireHidConnection {
 
 impl Default for WasefireHidConnection {
     fn default() -> Self {
-        todo!()
-        // Self {}
+        Self {}
     }
 }
 
-struct WasefireEnv<H: Handler> {
+struct WasefireEnv {
     rng: WasefireRng,
     write: WasefireWrite,
     // store: Store<Storage<S, C>>,
@@ -305,11 +300,11 @@ struct WasefireEnv<H: Handler> {
     vendor_connection: WasefireHidConnection,
     // blink_pattern: usize,
     // clock: TockClock<S>,
-    clock: WasefireClock<H>,
+    clock: WasefireClock,
     // c: PhantomData<C>,
 }
 
-impl<H: Handler> AttestationStore for WasefireEnv<H> {
+impl AttestationStore for WasefireEnv {
     fn get(
         &mut self, id: &Id,
     ) -> Result<Option<Attestation>, opensk::api::attestation_store::Error> {
@@ -323,7 +318,7 @@ impl<H: Handler> AttestationStore for WasefireEnv<H> {
     }
 }
 
-impl<H: Handler> Default for WasefireEnv<H> {
+impl Default for WasefireEnv {
     fn default() -> Self {
         let rng = WasefireRng::default();
         let write = WasefireWrite::default();
@@ -343,7 +338,7 @@ impl<H: Handler> Default for WasefireEnv<H> {
     }
 }
 
-impl<H: Handler> Env for WasefireEnv<H> {
+impl Env for WasefireEnv {
     // TODO: Some of these are `Self` instead of separate structs in TockEnv &
     // TestEnv. e.g. KeyStore, AttestationStore. Do we need them to be that way?
     type Rng = WasefireRng;
@@ -354,7 +349,7 @@ impl<H: Handler> Env for WasefireEnv<H> {
     type Write = WasefireWrite;
     type HidConnection = WasefireHidConnection;
     type AttestationStore = Self;
-    type Clock = WasefireClock<H>;
+    type Clock = WasefireClock;
     type Crypto = SoftwareCrypto;
 
     fn rng(&mut self) -> &mut Self::Rng {
@@ -362,7 +357,8 @@ impl<H: Handler> Env for WasefireEnv<H> {
     }
 
     fn customization(&self) -> &Self::Customization {
-        &WASEFIRE_CUSTOMIZATION
+        todo!()
+        // &WASEFIRE_CUSTOMIZATION
     }
 
     fn user_presence(&mut self) -> &mut Self::UserPresence {
@@ -394,17 +390,40 @@ impl<H: Handler> Env for WasefireEnv<H> {
     }
 }
 
-// This depends on `std` features in opensk. But wasefire::applet is `no_std`?
 #[cfg(test)]
 mod test {
-    use opensk::api::customization::is_valid;
+    use alloc::string::String;
+    use alloc::vec;
+
+    use opensk::api::crypto::ecdsa::SecretKey;
+    use opensk::api::private_key::PrivateKey;
+    // use opensk::api::customization::is_valid;
+    use opensk::ctap::data_formats::{
+        CoseKey, PinUvAuthProtocol, PublicKeyCredentialSource, PublicKeyCredentialType,
+    };
+    use opensk::ctap::CtapState;
+    use opensk::env::EcdhSk;
+    use wasefire::clock::Handler;
 
     use super::*;
 
+    // #[test]
+    // fn test_invariants() {
+    // assert!(is_valid(&WASEFIRE_CUSTOMIZATION));
+    // }
+
+    // TODO: Add tests for Rng, Customization and others
+
     #[test]
-    fn test_invariants() {
-        assert!(is_valid(&WASEFIRE_CUSTOMIZATION));
+    fn test_private_key_get_pub_key() {
+        // let mut env = TestEnv::default();
+        let mut env: WasefireEnv = WasefireEnv::default();
+        let private_key = PrivateKey::new_ecdsa(&mut env);
+        let ecdsa_key = private_key.ecdsa_key::<WasefireEnv>().unwrap();
+        let public_key = ecdsa_key.public_key();
+        assert_eq!(
+            private_key.get_pub_key::<WasefireEnv>(),
+            Ok(CoseKey::from_ecdsa_public_key(public_key))
+        );
     }
 }
-
-// TODO: Add tests for Rng, Customization and others
