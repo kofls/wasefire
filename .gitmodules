@@ -10,4 +10,4 @@
 [submodule "third_party/OpenSK"]
 	path = third_party/OpenSK
 	url = http://github.com/google/OpenSK.git
-  branch = develop
+	branch = develop
