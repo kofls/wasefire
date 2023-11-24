@@ -8,11 +8,14 @@
 
 ### Minor
 
+- Use `wasefire-mutex` to provide `sync::Mutex`
 - Expose the main function as `applet_main` in `native`
 - Use the default allocation error handler
 
 ### Patch
 
+- Build docs.rs for wasm32-unknown-unknown
+- Fix broken links in documentation
 - Update dependencies
 
 ## 0.4.0

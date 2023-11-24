@@ -18,7 +18,6 @@ use std::collections::BinaryHeap;
 use std::fmt::Display;
 use std::num::ParseIntError;
 use std::os::unix::prelude::CommandExt;
-use std::path::Path;
 use std::process::{Command, Output};
 use std::str::FromStr;
 
@@ -285,7 +284,7 @@ impl AppletOptions {
         } else {
             format!("examples/{}/{}", self.lang, self.name)
         };
-        ensure!(Path::new(&dir).exists(), "{dir} does not exist");
+        ensure!(fs::exists(&dir), "{dir} does not exist");
         let native = match (main.native, &main.native_target, command) {
             (_, Some(target), command) => {
                 if let Some(AppletCommand::Runner(x)) = command {
@@ -339,9 +338,21 @@ impl AppletOptions {
         cargo.env("RUSTFLAGS", rustflags.join(" "));
         cargo.current_dir(dir);
         execute_command(&mut cargo)?;
-        if native.is_some() {
-            copy_if_changed(&out, "target/wasefire/libapplet.a")?;
-        } else if copy_if_changed(&out, "target/wasefire/applet.wasm")? {
+        let applet = match native {
+            Some(_) => "target/wasefire/libapplet.a",
+            None => "target/wasefire/applet.wasm",
+        };
+        let changed = copy_if_changed(&out, applet)?;
+        if native.is_some() && main.size {
+            let mut size = wrap_command()?;
+            size.args(["rust-size", applet]);
+            let output = String::from_utf8(output_command(&mut size)?.stdout)?;
+            // We assume the interesting part is the first line after the header.
+            for line in output.lines().take(2) {
+                println!("{line}");
+            }
+        }
+        if native.is_none() && changed {
             self.optimize_wasm(main)?;
         }
         Ok(())
@@ -369,7 +380,7 @@ impl AppletOptions {
     fn optimize_wasm(&self, main: &MainOptions) -> Result<()> {
         let wasm = "target/wasefire/applet.wasm";
         if main.size {
-            println!("Initial applet size: {}", fs::metadata(wasm)?.len());
+            println!("Applet size: {}", fs::metadata(wasm)?.len());
         }
         if self.strip.get() {
             let mut strip = wrap_command()?;
@@ -377,7 +388,7 @@ impl AppletOptions {
             strip.arg(wasm);
             execute_command(&mut strip)?;
             if main.size {
-                println!("Stripped applet size: {}", fs::metadata(wasm)?.len());
+                println!("Applet size (after wasm-strip): {}", fs::metadata(wasm)?.len());
             }
         }
         if self.opt.get() {
@@ -394,7 +405,7 @@ impl AppletOptions {
             opt.args([wasm, "-o", wasm]);
             execute_command(&mut opt)?;
             if main.size {
-                println!("Optimized applet size: {}", fs::metadata(wasm)?.len());
+                println!("Applet size (after wasm-opt): {}", fs::metadata(wasm)?.len());
             }
         }
         Ok(())
@@ -497,8 +508,8 @@ impl RunnerOptions {
         cargo.current_dir(format!("crates/runner-{}", self.name));
         fs::touch("target/wasefire/applet.wasm")?;
         if run && self.name == "host" {
-            let path = Path::new("target/wasefire/storage.bin");
-            if self.erase_flash && path.exists() {
+            let path = "target/wasefire/storage.bin";
+            if self.erase_flash && fs::exists(path) {
                 fs::remove_file(path)?;
             }
             replace_command(cargo);
@@ -660,15 +671,13 @@ fn wrap_command() -> Result<Command> {
 ///
 /// Returns whether the copy took place.
 fn copy_if_changed(src: &str, dst: &str) -> Result<bool> {
-    let dst_file = format!("{dst}.hash");
+    let dst_hash = format!("{dst}.hash");
     let src_hash = Sha256::digest(fs::read(src)?);
-    let dst_path = Path::new(dst);
-    let changed =
-        !dst_path.exists() || !Path::new(&dst_file).exists() || fs::read(&dst_file)? != *src_hash;
+    let changed = !fs::exists(dst) || !fs::exists(&dst_hash) || fs::read(&dst_hash)? != *src_hash;
     if changed {
         println!("cp {src} {dst}");
         fs::copy(src, dst)?;
-        fs::write(&dst_file, src_hash)?;
+        fs::write(&dst_hash, src_hash)?;
     }
     Ok(changed)
 }
@@ -676,7 +685,7 @@ fn copy_if_changed(src: &str, dst: &str) -> Result<bool> {
 fn ensure_assemblyscript() -> Result<()> {
     const ASC_VERSION: &str = "0.27.17"; // scripts/upgrade.sh relies on this name
     const PATH: &str = "examples/assemblyscript/node_modules/assemblyscript/package.json";
-    if Path::new(PATH).exists() {
+    if fs::exists(PATH) {
         let mut sed = Command::new("sed");
         sed.args(["-n", r#"s/^  "version": "\(.*\)",$/\1/p"#, PATH]);
         if read_output_line(&mut sed)? == ASC_VERSION {

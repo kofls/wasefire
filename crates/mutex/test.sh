@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,7 @@ set -e
 
 . "$(git rev-parse --show-toplevel)"/scripts/test-helper.sh
 
-ensure_applet
-
 test_helper
 
-cargo check --target=thumbv7em-none-eabi --features=wasm,debug
-DEFMT_LOG=trace cargo check --target=thumbv7em-none-eabi --features=wasm,debug
-cargo check --target=thumbv7em-none-eabi --features=wasm,release
-cargo check --target=thumbv7em-none-eabi --features=native,release
+cargo test
+cargo check --target=thumbv7em-none-eabi
