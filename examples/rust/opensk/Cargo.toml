@@ -1,5 +1,5 @@
 [package]
-name = "opensk_test"
+name = "opensk"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,10 +7,10 @@ edition = "2021"
 
 [dependencies]
 rand_core = "0.6.4"
-opensk = { path = "../../../third_party/OpenSK/libraries/opensk", features = ["std"]}
-persistent_store = { path = "../../../third_party/OpenSK/libraries/persistent_store", features = ["std"]}
+opensk = { path = "../../../third_party/OpenSK/libraries/opensk" }
+persistent_store = { path = "../../../third_party/OpenSK/libraries/persistent_store" }
 wasefire = { path = "../../../crates/prelude" }
 wasefire-stub = { path = "../../../crates/stub", optional = true }
 
 [features]
-test = ["dep:wasefire-stub", "wasefire/test"]
+test = ["dep:wasefire-stub", "persistent_store/std", "wasefire/test"]

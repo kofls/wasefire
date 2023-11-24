@@ -25,7 +25,8 @@ use opensk::api::clock::Clock;
 use opensk::api::connection::HidConnection;
 use opensk::api::crypto::software_crypto::SoftwareCrypto;
 use opensk::api::crypto::Crypto;
-use opensk::api::customization::{CustomizationImpl, AAGUID_LENGTH, DEFAULT_CUSTOMIZATION};
+// use opensk::api::customization::{CustomizationImpl, AAGUID_LENGTH, DEFAULT_CUSTOMIZATION};
+use opensk::api::customization::CustomizationImpl;
 use opensk::api::key_store::{CredentialSource, KeyStore};
 use opensk::api::rng::Rng;
 use opensk::api::user_presence::UserPresence;
@@ -33,7 +34,7 @@ use opensk::ctap::secret::Secret;
 use opensk::env::Env;
 use persistent_store::{Storage, Store};
 use rand_core::{impls, CryptoRng, Error, RngCore};
-use wasefire::clock::{Handler, Timer};
+// use wasefire::clock::{Handler, Timer};
 
 fn main() {
     debug!("hello world");
@@ -392,18 +393,12 @@ impl Env for WasefireEnv {
 
 #[cfg(test)]
 mod test {
-    use alloc::string::String;
-    use alloc::vec;
 
     use opensk::api::crypto::ecdsa::SecretKey;
+    // use opensk::api::customizaton::is_valid;
     use opensk::api::private_key::PrivateKey;
-    // use opensk::api::customization::is_valid;
-    use opensk::ctap::data_formats::{
-        CoseKey, PinUvAuthProtocol, PublicKeyCredentialSource, PublicKeyCredentialType,
-    };
-    use opensk::ctap::CtapState;
-    use opensk::env::EcdhSk;
-    use wasefire::clock::Handler;
+    use opensk::ctap::data_formats::CoseKey;
+    use wasefire_stub as _;
 
     use super::*;
 
